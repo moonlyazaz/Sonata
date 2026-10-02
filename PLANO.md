@@ -15,37 +15,35 @@
 | Estado | Zustand (player, fila, biblioteca) |
 | Rotas | React Router v6 |
 | Ícones | Lucide React |
-| Animações | Framer Motion (transições de tela/expanded player) |
+| Animações | Framer Motion (login, expanded player, entrada/saída da player bar) |
 | Dados | **API pública do SoundCloud (api-v2)**, sem chave |
-| Persistência | localStorage (likes, playlists, volume, recentes) |
+| Backend | Vercel serverless (`api/*.ts`) — **mesmo código** que o dev, via middleware do Vite |
+| Persistência | **Neon Postgres por conta** (cookie httpOnly) + `localStorage` como cache |
 
 ### Marca
 
 **Nome:** Sonata (refonte de *SoundGlass* → *Prisma* → **Sonata**).
 
 **Marca gráfica:** o **ícone nº 7 de um contato-sheet de 8 direções** — quatro
-barras de equalizador dentro de uma orbe de vidro. O wordmark acompanha o
-mesmo tratamento.
+barras de equalizador dentro de um disco de gradiente azul. O wordmark
+acompanha o mesmo tratamento.
 
 | Arquivo | Papel |
 |---|---|
-| `src/components/brand/Logo.tsx` | marca em runtime — **`<div>` de vidro**, não um `<svg>` |
-| `src/styles/glass.css` (`.sonata-mark`, `.sonata-word`) | o material Liquid Glass |
-| `public/favicon.svg` | versão **assada** da mesma geometria |
+| `src/components/brand/Logo.tsx` | marca em runtime — `<span>` + SVG que só desenha as barras |
+| `src/styles/glass.css` (`.sonata-mark`, `.sonata-word`) | o disco: gradiente `#38bdf8 → #0284c7 → #082f49` |
+| `index.html` (`#boot`) | splash de boot — **idêntica** às outras |
+| `public/favicon.svg` | a mesma geometria, assada |
 
-**Por o `Logo` ser um `<div>`:** `backdrop-filter` é propriedade CSS e não
-existe em primitivas SVG. Para o vidro ser *verdadeiro* — borro e satura o que
-está atrás, a sidebar ou o gradiente da home — o disco precisa ser um elemento
-de caixa com o SVG das barras por cima. As barras, a sombra gravada e o aro
-mantêm a geometria idêntica às do favicon; **se mexer numa, mexe na outra**.
+**Uma marca só, quatro lugares:** splash do `index.html`, favicon, `Logo.tsx` e
+`.sonata-mark` são o mesmo desenho — círculo de gradiente azul e quatro barras
+brancas. **Sem** `backdrop-filter`, aro, especular nem sombra gravada: o que
+aparece na tela de carregamento é exatamente o que aparece na sidebar, no login
+e na aba. **Se mexer numa, mexe nas quatro.**
 
-**O favicon é a única concessão:** ele não tem backdrop para borrar, então o
-corpo verde com especular e aro está pintado no próprio SVG. Sem `<filter>` —
-favicons não o renderizam de forma confiável.
-
-**Contraste das barras:** o corpo na área onde elas ficam não passa de
-`~#0d8848` (L≈0,18) → ≈3,8:1 contra o branco, acima de 3:1 exigido para
-gráficos. Por isso o especular é pequeno e fica fora da área das barras.
+**Contraste das barras:** elas ficam no miolo do gradiente, onde o corpo é
+`≈#0284c7` → **4,1:1** contra o branco, acima das 3:1 exigidas para gráficos. A
+ponta clara `#38bdf8` só aparece nos cantos, fora da área das barras.
 
 ### Por que o SoundCloud?
 - **Música completa** (MP3 progressivo), não preview de 30s
@@ -58,7 +56,7 @@ O `client_id` **não é uma chave de cadastro** — é o mesmo que o player púb
 SoundCloud usa. Descobrimos em runtime:
 
 ```
-GET /sc/web/          → soundcloud.com (via proxy)
+GET /api/sc?alvo=web&u=/            → soundcloud.com (via proxy)
   → HTML contém: {"hydratable":"apiClient","data":{"id":"<client_id>"}}
 ```
 
@@ -69,12 +67,19 @@ Se a API devolver 401/403, o cliente invalida e redescobre automaticamente.
    DRM FairPlay (`SAMPLE-AES` + `skd://`), que não roda em `<audio>` comum.
    → o player pula para a próxima automaticamente.
 2. **CORS**: nem `soundcloud.com` nem `api-v2.soundcloud.com` enviam
-   `Access-Control-Allow-Origin` → **proxy do Vite**:
+   `Access-Control-Allow-Origin` → **proxy próprio em `server/sc.ts`**, exposto
+   como `GET /api/sc?alvo=api|web&u=…` (o Vite o serve como middleware em dev,
+   `api/sc.ts` na Vercel — **o mesmo código nos dois**):
    ```ts
-   // vite.config.ts
-   '/sc/api': { target: 'https://api-v2.soundcloud.com', rewrite: p => p.replace(/^\/sc\/api/, '') },
-   '/sc/web': { target: 'https://soundcloud.com',        rewrite: p => p.replace(/^\/sc\/web/, '') },
+   // server/sc.ts
+   const ALVOS = { api: 'https://api-v2.soundcloud.com', web: 'https://soundcloud.com' };
    ```
+   - Alvo e caminho viajam na **query string** porque o `api/` da Vercel só
+     aceita dinâmico de um segmento (catch-all é exclusivo do Next.js).
+   - **`User-Agent` fixo de desktop + `redirect: 'follow'`**: com UA de celular
+     o SoundCloud manda 302 → `m.soundcloud.com`, cuja home não tem
+     `__sc_hydration` e que o navegador derruba por CORS. Seguindo o redirect
+     **no servidor**, o `client_id` continua chegando.
 3. **Streams expiram** (~5h, URL assinada CloudFront) → cache + renovação sob demanda.
 4. URLs de imagem (`i1.sndcdn.com`) e `cf-media.sndcdn.com` já têm CORS próprio,
    então capas e áudio funcionam direto, sem passar pelo proxy.
@@ -103,7 +108,7 @@ Se a API devolver 401/403, o cliente invalida e redescobre automaticamente.
 > - `items` de uma seleção é **um objeto** `{collection}`, não array
 > - `protocol`/`mime_type` vêm **dentro de `format`**, não no topo
 > - `system-playlists` devolve faixas como `{id, kind}` — precisa de `/tracks?ids=`
-> - URLs de transcoding vêm absolutas → reescrever para `/sc/api/...`
+> - URLs de transcoding vêm absolutas → trocar o host pelo proxy (`/api/sc?alvo=api&u=/media/…`)
 
 ---
 
@@ -111,24 +116,30 @@ Se a API devolver 401/403, o cliente invalida e redescobre automaticamente.
 
 ```
 src/
+├── main.tsx                    # boot() → sessão → import dinâmico do app
 ├── app/
-│   ├── App.tsx                 # Router + providers
-│   └── routes.tsx
+│   └── App.tsx                 # Router + providers
 ├── lib/
-│   ├── soundcloud.ts           # Cliente api-v2 (client_id dinâmico + cache)
-│   ├── format.ts               # tempo, números (1.2M)
-│   ├── storage.ts              # helpers localStorage + ALL_MANAGED_KEYS
+│   ├── soundcloud.ts           # cliente api-v2 (client_id dinâmico + cache)
 │   ├── api.ts                  # fetch da API da Sonata (cookie httpOnly)
+│   ├── audio.ts                # singleton <audio> fora do React
+│   ├── boot.ts                 # sessão + hidratação ANTES das stores nascerem
 │   ├── sync.ts                 # write-through localStorage → Neon (debounce)
-│   └── boot.ts                 # sessão + hidratação ANTES das stores nascerem
+│   ├── avatar.ts               # reduz a foto p/ 160×160 WebP no navegador
+│   ├── stored.ts               # StoredTrack → ScTrack (restaura do banco)
+│   ├── storage.ts              # helpers localStorage + ALL_MANAGED_KEYS
+│   └── format.ts               # tempo, números (1.2M)
 ├── stores/
 │   ├── playerStore.ts          # faixa atual, fila, shuffle, repeat, volume
-│   ├── queueStore.ts
 │   ├── libraryStore.ts         # likes, playlists criadas, recentes
-│   └── authStore.ts            # usuário da sessão, entrar/cadastrar/sair
+│   ├── authStore.ts            # usuário da sessão, entrar/cadastrar/sair
+│   ├── playlistDialogStore.ts  # modal único de playlist
+│   └── playlistMenuStore.ts    # menu "adicionar à playlist"
 ├── hooks/
-│   ├── useAudioEngine.ts       # ligação <audio> ↔ store + Media Session API
-│   ├── useDeezer.ts            # useSearch, useChart, useAlbum, useArtist...
+│   ├── useSearch.ts            # busca com debounce + cache
+│   ├── useCollection.ts        # álbum · artista · playlist do SoundCloud
+│   ├── usePlayList.ts          # play de uma lista usando a lista como fila
+│   ├── useMediaQuery.ts        # breakpoints
 │   └── useKeyboardShortcuts.ts
 ├── components/
 │   ├── glass/                  # sistema Liquid Glass (reutilizável)
@@ -137,46 +148,50 @@ src/
 │   │   ├── GlassPanel.tsx      # sidebar, menus, modais
 │   │   ├── GlassSlider.tsx     # volume, seek
 │   │   └── GlassModal.tsx
+│   ├── brand/
+│   │   └── Logo.tsx            # a mesma SVG da splash (4 barras)
 │   ├── layout/
 │   │   ├── Sidebar.tsx
-│   │   ├── TopBar.tsx          # busca + navegação + avatar
-│   │   ├── PlayerBar.tsx       # barra fixa inferior
-│   │   ├── RightPanel.tsx      # fila / "tocando agora"
-│   │   └── AppShell.tsx
+│   │   ├── TopBar.tsx          # busca + navegação + avatar (logout)
+│   │   └── AppShell.tsx        # casca + fila + player bar
 │   ├── player/
-│   │   ├── PlayButton.tsx
+│   │   ├── PlayerBar.tsx       # barra fixa inferior (só monta com faixa)
+│   │   ├── QueuePanel.tsx      # fila / "tocando agora"
 │   │   ├── SeekBar.tsx
 │   │   ├── VolumeControl.tsx
-│   │   ├── QueueList.tsx
 │   │   └── ExpandedPlayer.tsx  # tela cheia com capa animada
-│   └── music/
-│       ├── TrackRow.tsx        # linha de música (nº, capa, título, duração)
-│       ├── CardGrid.tsx        # grade de cards (álbuns/playlists)
-│       ├── AlbumCard.tsx / ArtistCard.tsx / PlaylistCard.tsx
-│       └── SectionCarousel.tsx # carrossel horizontal da home
+│   ├── music/
+│   │   ├── TrackRow.tsx        # linha de música (nº, capa, título, duração)
+│   │   └── MediaCard.tsx       # card de capa (home, busca, coleção)
+│   └── playlist/
+│       ├── PlaylistDialog.tsx  # criar / editar
+│       ├── PlaylistModal.tsx
+│       └── AddToPlaylistMenu.tsx
 ├── pages/
 │   ├── LoginPage.tsx           # login + cadastro (primeira tela do site)
-│   ├── Home.tsx
-│   ├── Search.tsx
-│   ├── Library.tsx
-│   ├── Album.tsx
-│   ├── Artist.tsx
-│   ├── Playlist.tsx
-│   ├── LikedSongs.tsx
-│   └── Profile.tsx
-├── styles/
-│   ├── globals.css             # tokens, blobs animados, scrollbar glass
-│   └── glass.css               # utilitários .glass-*
-└── main.tsx
+│   ├── HomePage.tsx
+│   ├── SearchPage.tsx
+│   ├── LibraryPage.tsx
+│   ├── CollectionPage.tsx      # álbum · artista · playlist do SoundCloud
+│   ├── ArtistPage.tsx
+│   ├── UserPlaylistPage.tsx    # playlist criada por você
+│   ├── LikedPage.tsx
+│   └── placeholders.tsx
+└── styles/
+    ├── globals.css             # tokens, blobs animados, scrollbar glass
+    └── glass.css               # utilitários .glass-*
 
 server/                          # API — MESMO código no dev e na Vercel
 ├── db.ts                        # driver HTTP do Neon + DDL + MANAGED_KEYS
 ├── auth.ts                      # scrypt, sessões, cookies httpOnly
 ├── routes.ts                    # signup/login/logout/me + GET|PUT /api/data
+├── sc.ts                        # proxy do SoundCloud — UA fixo, redirect no servidor
 └── serve.ts                     # adaptador node:http (um só para os dois)
 
 api/                             # wrappers da Vercel — 1 linha por rota
+├── sc.ts                        # GET /api/sc?alvo=api|web&u=…
 ├── data.ts                      # GET|POST|PUT /api/data
+├── avatar.ts                    # PUT /api/avatar (160×160 WebP)
 └── auth/{signup,login,logout,me}.ts
 ```
 
@@ -193,19 +208,21 @@ api/                             # wrappers da Vercel — 1 linha por rota
 --blur-panel:      saturate(180%) blur(24px);
 --blur-card:       saturate(160%) blur(12px);
 --radius-lg:       24px;
---accent:          #1DB954;   /* verde Spotify */
+--accent:          #38bdf8;   /* azul claro */
+--accent-hover:    #7dd3fc;
 ```
 
 ### Fundo
-- Base escura `#050505` + **2–3 blobs de gradiente** (verde/roxo/ciano) com
-  `filter: blur(120px)` e animação lenta de deriva → dá a "vida" atrás do vidro.
+- Base escura `#050505` + **3 blobs de gradiente azul** (`#38bdf8` · `#2563eb` ·
+  `#67e8f9`) com `filter: blur(120px)`, `opacity: .42` e deriva lenta de 26–38s
+  → dá a "vida" atrás do vidro.
 
 ### Regras do vidro
 1. Todo painel: `backdrop-filter` + borda 1px clara em cima + sombra escura embaixo
 2. **Highlight especular**: gradiente `rgba(255,255,255,.25 → 0)` no topo do card
 3. Hover: aumenta opacidade do fundo e brilho da borda (transição 200ms)
 4. Cards de capa mantêm imagem nítida, só o chrome ao redor é vidro
-5. Slider/proGRESSO com "lâmina" de vidro e thumb branco luminoso
+5. Slider/progesso com "lâmina" de vidro e thumb branco luminoso
 
 ---
 
@@ -215,7 +232,8 @@ api/                             # wrappers da Vercel — 1 linha por rota
 - [x] Scaffold Vite + TS + Tailwind v4
 - [x] Tokens de tema, blobs de fundo, scrollbars custom
 - [x] Sistema de componentes `glass/*` (Card, Button, Panel, Slider, Modal)
-- [x] Proxy SoundCloud no `vite.config.ts` + cliente API tipado
+- [x] Proxy SoundCloud + cliente API tipado — hoje em `server/sc.ts`
+      (`GET /api/sc`); na Fase 0 era `server.proxy` no `vite.config.ts`
 - [x] Descoberta dinâmica de `client_id` (com retry em 401/403)
 
 ### Fase 1 — Shell de navegação
@@ -349,12 +367,16 @@ vira só cache.
 | `db.ts` | `neon()` HTTP, `MANAGED_KEYS`, DDL idempotente, helper `rows<T>()` |
 | `auth.ts` | senha com **scrypt** nativo (bcrypt exigiria módulo nativo e quebra no bundle da Vercel); sessão = token aleatório no cookie httpOnly, **só o SHA-256 vai para o banco** |
 | `routes.ts` | signup · login · logout · me · GET/PUT `/api/data` |
+| `sc.ts` | proxy do SoundCloud — alvo na query string (`alvo=api\|web&u=`), `User-Agent` fixo de desktop e redirect seguido **no servidor** |
 | `serve.ts` | adaptador `node:http` único para dev **e** produção |
 
 - Dev: `apiPlugin` no `vite.config.ts` monta `serveApi` como middleware — mesmo
   processo, mesma origem, cookie funciona igual.
 - Produção: `api/*.ts` são wrappers de 1 linha sobre o mesmo `serveApi`.
   Sem código duplicado entre dev e produção.
+- As rotas `/sc/*` (rewrites externos) e o `server.proxy` saíram: a Vercel não
+  permite setar headers de request no proxy do CDN — o `User-Agent` do
+  visitante passava direto e o SoundCloud respondia 302 → `m.soundcloud.com`.
 - Driver **HTTP** (`neon()` sobre o endpoint pooler), não TCP: a Vercel não
   segura conexões nem tem disco.
 
@@ -397,28 +419,29 @@ F0 Fundação ──► F1 Shell ──► F2 Player ──► F3 Home
 ## 6. Como rodar
 
 ```bash
-cp .env.example .env   # preencha DATABASE_URL e SESSION_SECRET
+cp .env.example .env   # preencha DATABASE_URL (única que o app lê)
 npm install
 npm run dev             # http://localhost:5173
 ```
 
 A busca e o player usam o proxy do SoundCloud (sem chave). O **login e a
-sincronização** precisam do `.env` — só `DATABASE_URL` e `SESSION_SECRET` são
-lidos pelo app; o resto do `.env.example` é documentação.
+sincronização** precisam de `DATABASE_URL` — é a única variável que o código
+lê. `SESSION_SECRET` e `NEON_API_KEY` (do `.env.example`) **não são lidos por
+nenhum arquivo**: a sessão nasce de `randomBytes` e só o SHA-256 vai pro banco,
+então não há segredo a assinar.
 
 ### Deploy na Vercel
 
 ```bash
 npm i -g vercel && vercel link
 vercel env add DATABASE_URL production
-vercel env add SESSION_SECRET production
 vercel --prod
 ```
 
 - As funções ficam em `api/` e roteiam sozinhas; `vercel.json` já aponta
   `buildCommand`/`outputDirectory` para o Vite e faz o fallback de SPA
   (excluindo `/api/*`).
-- **Nunca** use prefixo `VITE_` nessas variáveis — o Vite embute no bundle e a
+- **Nunca** use prefixo `VITE_` nessa variável — o Vite embute no bundle e a
   senha do Postgres ficaria pública.
 - O `.env` está no `.gitignore`. Não commite `DATABASE_URL` nem a chave
   `napi_` do Neon.
@@ -427,7 +450,7 @@ vercel --prod
 
 | Risco | Mitigação |
 |---|---|
-| Deezer limita/prejudica requests em massa | Cache de respostas em memória (react-query ou Map) |
+| SoundCloud invalida `client_id` ou limita requests | Descoberta automática em 401/403 + cache de respostas em memória (`Map`) |
 | Preview indisponível em algumas faixas | Fallback: pular para próxima automaticamente |
 | `backdrop-filter` pesado em PCs fracos | Reduzir blur em `@media (prefers-reduced-transparency)` |
-| Mudança de schema da API | Tipos centrais em `lib/deezer.ts` (corrigir em 1 lugar) |
+| Mudança de schema da API | Tipos centrais em `lib/soundcloud.ts` (corrigir em 1 lugar) |

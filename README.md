@@ -54,7 +54,7 @@ npm install
 
 # 2. criar o arquivo de ambiente
 cp .env.example .env
-# edite .env e preencha DATABASE_URL e SESSION_SECRET
+# edite .env e preencha DATABASE_URL (a única que o app lê)
 
 # 3. subir o servidor de desenvolvimento
 npm run dev
@@ -79,9 +79,13 @@ Copie `.env.example` para `.env` (que está no `.gitignore`).
 | Variável | Obrigatória | Descrição |
 | --- | --- | --- |
 | `DATABASE_URL` | sim | connection string do Neon. Use o host **`-pooler`** — é o que o driver HTTP `neon()` espera |
-| `SESSION_SECRET` | sim | segredo do cookie de sessão. Gere um assim:<br>`node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
 
-> ⚠️ **Nada disso pode ter prefixo `VITE_`.** Variáveis iniciadas com `VITE_` são embutidas no bundle do navegador e ficam visíveis para qualquer um. Estas só são lidas pelo servidor.
+O `.env.example` também traz `SESSION_SECRET` e `NEON_API_KEY`, mas **nenhum
+arquivo do app lê essas duas**: a sessão nasce de `randomBytes` e só o SHA-256
+vai para o banco — não existe segredo a assinar. Preencher `DATABASE_URL`
+resolve.
+
+> ⚠️ **`DATABASE_URL` não pode ter prefixo `VITE_`.** Variáveis iniciadas com `VITE_` são embutidas no bundle do navegador e ficam visíveis para qualquer um. Ela só é lida pelo servidor.
 
 ---
 
@@ -189,10 +193,9 @@ O Sonata consome a **API pública v2 do SoundCloud** — faixas em MP3 completo,
 # 1. linkar o projeto
 vercel link
 
-# 2. cadastrar as variáveis de AMBIENTE (Production)
+# 2. cadastrar a variável de AMBIENTE (Production)
 #    Vercel → Project → Settings → Environment Variables
 #    DATABASE_URL
-#    SESSION_SECRET
 
 # 3. publicar
 vercel --prod
