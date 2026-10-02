@@ -81,7 +81,8 @@ export default defineConfig(({ mode }) => {
           target: 'https://soundcloud.com',
           changeOrigin: true,
           headers: SC_HEADERS,
-          rewrite: (path) => path.replace(/^\/sc\/web/, ''),
+          // `|| '/'` — o cliente pede `/sc/web` sem barra, e o alvo precisa de caminho.
+          rewrite: (path) => path.replace(/^\/sc\/web/, '') || '/',
           configure: (proxy) => {
             proxy.on('proxyRes', (proxyRes) => {
               proxyRes.headers['access-control-allow-origin'] = '*';

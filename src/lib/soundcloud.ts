@@ -27,7 +27,8 @@ let clientId: string | null = null;
 let pendingId: Promise<string> | null = null;
 
 async function fetchClientId(): Promise<string> {
-  const res = await fetch(`${WEB}/`);
+  // Sem barra final: no rewrite da Vercel `/sc/web/:path*` não casa `/sc/web/`.
+  const res = await fetch(WEB);
   if (!res.ok) throw new Error(`SoundCloud home ${res.status}`);
 
   const html = await res.text();
