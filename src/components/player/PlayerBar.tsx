@@ -49,12 +49,13 @@ export function PlayerBar() {
       animate={{ y: 0, opacity: 1 }}
       exit={{ y: '110%', opacity: 0 }}
       transition={{ type: 'spring', stiffness: 340, damping: 34 }}
-      className="glass-liquid glass-liquid--bar fixed right-0 bottom-0 left-0 z-40 flex h-[var(--player-h)] items-center gap-4 px-4"
+      className="glass-liquid glass-liquid--bar fixed right-0 bottom-0 left-0 z-40 flex h-[var(--player-h)] flex-col justify-center gap-1.5 px-4 md:flex-row md:items-center md:justify-start md:gap-4"
       role="contentinfo"
       aria-label="Player"
     >
       {/* -------- Faixa atual -------- */}
-      <div className="flex w-[30%] min-w-0 items-center gap-3">
+      {/* Mobile: linha de cima inteira (capa + texto + curtir). Desktop: 30%. */}
+      <div className="flex w-full min-w-0 items-center gap-2.5 md:w-[30%] md:gap-3">
         {hasTrack ? (
           <>
             <button
@@ -73,14 +74,14 @@ export function PlayerBar() {
                     undefined
                   }
                   alt=""
-                  className="h-14 w-14 rounded-lg object-cover shadow-lg"
+                  className="h-10 w-10 rounded-lg object-cover shadow-lg md:h-14 md:w-14"
                 />
               ) : (
-                <div className="h-14 w-14 rounded-lg bg-white/10" />
+                <div className="h-10 w-10 rounded-lg bg-white/10 md:h-14 md:w-14" />
               )}
             </button>
 
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <button
                 className="block w-full truncate text-left text-sm font-semibold hover:underline"
                 onClick={() => setExpanded(true)}
@@ -109,11 +110,15 @@ export function PlayerBar() {
         )}
       </div>
 
-      {/* -------- Transporte + progresso -------- */}
-      <div className="flex w-[40%] max-w-[720px] min-w-0 flex-col items-center gap-1">
-        <div className="flex items-center gap-2">
+      {/* -------- Transporte + progresso --------
+          Abaixo de `md` o rodapé é coluna: a faixa ocupa a linha de cima e,
+          aqui embaixo, os botões ficam AO LADO da barra de progresso. Os
+          controles secundários (aleatório, repetição, volume, fila, tela
+          cheia) somem no mobile — todos continuam no player expandido. */}
+      <div className="flex w-full min-w-0 items-center gap-3 md:w-[40%] md:max-w-[720px] md:flex-none md:flex-col md:gap-1">
+        <div className="flex shrink-0 items-center gap-1 md:gap-2">
           <button
-            className={`glass-icon-btn !h-8 !w-8 ${shuffle ? 'is-active' : ''}`}
+            className={`glass-icon-btn hidden !h-8 !w-8 md:inline-flex ${shuffle ? 'is-active' : ''}`}
             onClick={toggleShuffle}
             aria-label="Ordem aleatória"
             aria-pressed={shuffle}
@@ -159,7 +164,7 @@ export function PlayerBar() {
           </button>
 
           <button
-            className={`glass-icon-btn !h-8 !w-8 ${repeat !== 'off' ? 'is-active' : ''}`}
+            className={`glass-icon-btn hidden !h-8 !w-8 md:inline-flex ${repeat !== 'off' ? 'is-active' : ''}`}
             onClick={cycleRepeat}
             aria-label={`Repetição: ${repeat === 'off' ? 'desligada' : repeat === 'all' ? 'fila' : 'faixa'}`}
             title={repeat === 'off' ? 'Sem repetição' : repeat === 'all' ? 'Repetir fila' : 'Repetir faixa'}
@@ -168,22 +173,35 @@ export function PlayerBar() {
           </button>
         </div>
 
-        <SeekBar
-          current={currentTime}
-          duration={duration}
-          onSeek={seek}
-          disabled={!hasTrack}
-        />
+        {/* No mobile o erro toma o lugar da barra de progresso: não cabem os
+            dois na mesma linha. `loadCurrent()` zera `error` na próxima faixa,
+            então a seek volta sozinha. No desktop os dois continuam empilhados. */}
+        <div
+          className={`${error ? 'hidden md:flex' : 'flex'} min-w-0 flex-1 items-center md:w-full md:flex-none`}
+        >
+          <SeekBar
+            current={currentTime}
+            duration={duration}
+            onSeek={seek}
+            disabled={!hasTrack}
+          />
+        </div>
 
         {error && (
-          <p className="text-xs" style={{ color: 'var(--danger)' }} role="alert">
+          <p
+            className="min-w-0 flex-1 truncate text-xs md:w-full md:flex-none"
+            style={{ color: 'var(--danger)' }}
+            role="alert"
+          >
             {error}
           </p>
         )}
       </div>
 
-      {/* -------- Volume / fila -------- */}
-      <div className="flex w-[30%] items-center justify-end gap-1">
+      {/* -------- Volume / fila --------
+          Só no desktop: `w-32` do VolumeControl + fila já estouram os 30% em
+          tela estreita, e a branca do slider vazava por cima dos botões. */}
+      <div className="hidden w-[30%] items-center justify-end gap-1 md:flex">
         <button
           className={`glass-icon-btn !h-8 !w-8 ${queueOpen ? 'is-active' : ''}`}
           onClick={() => setQueueOpen(!queueOpen)}
