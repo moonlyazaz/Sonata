@@ -104,9 +104,6 @@ export function TopBar({ onOpenMenu }: TopBarProps) {
       </form>
 
       <div className="ml-auto flex items-center gap-2">
-        <button className="glass-btn hidden !px-4 !py-1.5 text-sm sm:inline-flex">
-          Explorar Premium
-        </button>
         <AccountMenu />
       </div>
     </header>
