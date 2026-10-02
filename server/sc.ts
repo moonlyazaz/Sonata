@@ -10,8 +10,11 @@ import type { ServerResponse } from 'node:http';
  * cross-origin e o CORS derruba o request.
  *
  * Aqui o UA é fixo (desktop) e qualquer redirect é seguido **no servidor**,
- * antes de chegar no navegador. É o mesmo código no dev (middleware do Vite)
- * e na Vercel (função `api/sc/[...path].ts`).
+ * antes de chegar no navegador. É o mesmo código no dev (middleware do Vite) e
+ * na Vercel (`api/sc.ts`).
+ *
+ * Alvo e caminho viajam na query string porque o `api/` da Vercel só aceita
+ * dinâmico de **um** segmento — catch-all é recurso do Next.js.
  */
 
 const ALVOS = {
@@ -25,23 +28,26 @@ const UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ' +
   '(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
 
-/**
- * `/api/sc/api/search/tracks` → `{ alvo: 'api', caminho: '/search/tracks' }`
- * `/api/sc/web`               → `{ alvo: 'web', caminho: '/' }`
- */
-export function parseScPath(pathname: string): { alvo: Alvo; caminho: string } | null {
-  const m = pathname.match(/^\/api\/sc\/(api|web)(\/[^]*)?$/);
-  if (!m) return null;
-  return { alvo: m[1] as Alvo, caminho: m[2] || '/' };
+/** `/api/sc?alvo=api&u=/search/tracks&…` → `{ alvo, caminho }` */
+export function parseSc(query: URLSearchParams): { alvo: Alvo; caminho: string } | null {
+  const alvo = query.get('alvo');
+  if (alvo !== 'api' && alvo !== 'web') return null;
+  return { alvo, caminho: query.get('u') || '/' };
 }
 
 export async function proxySc(
   alvo: Alvo,
   caminho: string,
-  search: string,
+  query: URLSearchParams,
   res: ServerResponse,
 ): Promise<void> {
-  const destino = `${ALVOS[alvo]}${caminho}${search}`;
+  // O que é nosso não vai pro SoundCloud.
+  const encaminhar = new URLSearchParams(query);
+  encaminhar.delete('alvo');
+  encaminhar.delete('u');
+  const qs = encaminhar.toString();
+
+  const destino = `${ALVOS[alvo]}${caminho}${qs ? `?${qs}` : ''}`;
 
   const upstream = await fetch(destino, {
     redirect: 'follow',

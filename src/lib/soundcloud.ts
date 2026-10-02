@@ -2,7 +2,7 @@
  * Cliente da API pública do SoundCloud (api-v2), via proxy da própria Sonata.
  *
  * A API exige um `client_id` que rotaciona. Em vez de fixá-lo no código,
- * descobrimos ele na home do SoundCloud (`/api/sc/web`) — a resposta traz
+ * descobrimos ele na home do SoundCloud (`/api/sc?alvo=web`) — a resposta traz
  * `window.__sc_hydration` com `{hydratable: "apiClient", data: {id: "..."}}`.
  *
  * Endpoints usados (todos testados ao vivo):
@@ -16,10 +16,28 @@
  *   GET /media/{urn}/stream/progressive → URL assinada do MP3 completo
  */
 
-// Mesmo caminho no dev e na produção: as duas rotas caem no `serveApi`
-// (middleware do Vite em dev, função `api/sc/[...path].ts` na Vercel).
-const API = '/api/sc/api';
-const WEB = '/api/sc/web';
+// Um único endpoint: a Vercel não faz catch-all fora do Next (o `[...path]`
+// vira segmento único), então o alvo e o caminho do SoundCloud viajam na query
+// string em vez de no path. Rota exata, sem dinâmica nenhuma.
+// Mesmo código nos dois ambientes: middleware do Vite em dev, `api/sc.ts` lá.
+const SC = '/api/sc';
+
+type Alvo = 'api' | 'web';
+
+/** `/api/sc?alvo=api&u=/search/tracks&client_id=…` */
+function montarUrl(
+  alvo: Alvo,
+  caminho: string,
+  params: Record<string, string | number> = {},
+  id?: string,
+): string {
+  const qs = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) qs.set(k, String(v));
+  qs.set('alvo', alvo);
+  qs.set('u', caminho);
+  if (id) qs.set('client_id', id);
+  return `${SC}?${qs}`;
+}
 
 /* ------------------------------------------------------------------ */
 /* client_id                                                           */
@@ -29,8 +47,7 @@ let clientId: string | null = null;
 let pendingId: Promise<string> | null = null;
 
 async function fetchClientId(): Promise<string> {
-  // Sem barra final: `/api/sc/web` cai no catch-all e vira `soundcloud.com/`.
-  const res = await fetch(WEB);
+  const res = await fetch(montarUrl('web', '/'));
   if (!res.ok) throw new Error(`SoundCloud home ${res.status}`);
 
   const html = await res.text();
@@ -76,12 +93,7 @@ function invalidateClientId(): void {
 /* ------------------------------------------------------------------ */
 
 async function request<T>(path: string, params: Record<string, string | number> = {}): Promise<T> {
-  const build = (id: string) => {
-    const qs = new URLSearchParams();
-    for (const [k, v] of Object.entries(params)) qs.set(k, String(v));
-    qs.set('client_id', id);
-    return `${API}${path}?${qs}`;
-  };
+  const build = (id: string) => montarUrl('api', path, params, id);
 
   let id = await getClientId();
   let res = await fetch(build(id));

@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { HttpError, match, type Ctx, type Result } from './routes.js';
-import { parseScPath, proxySc } from './sc.js';
+import { parseSc, proxySc } from './sc.js';
 
 /**
  * Adaptador Node → rotas.
@@ -68,9 +68,9 @@ export async function serveApi(req: IncomingMessage, res: ServerResponse): Promi
 
     // Proxy do SoundCloud — fora da tabela de rotas: devolve HTML/JSON cru,
     // sem passar pelo `send()` que sempre manda application/json.
-    const sc = parseScPath(url.pathname);
+    const sc = parseSc(url.searchParams);
     if (sc) {
-      await proxySc(sc.alvo, sc.caminho, url.search, res);
+      await proxySc(sc.alvo, sc.caminho, url.searchParams, res);
       return;
     }
 

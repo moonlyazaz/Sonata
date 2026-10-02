@@ -115,8 +115,8 @@ Todas as rotas vivem em `server/routes.ts`. Os arquivos em `api/` são *wrappers
 | `PUT` | `/api/data` | grava um item (write-through) |
 | `POST` | `/api/data` | idem — caminho do `sendBeacon` no `pagehide` |
 | `PUT` | `/api/avatar` | salva/remove a foto de perfil |
-| `GET` | `/api/sc/api/*` | proxy da api-v2 do SoundCloud (busca, playlists, stream) |
-| `GET` | `/api/sc/web*` | proxy do site — descobre o `client_id` |
+| `GET` | `/api/sc?alvo=api&u=…` | proxy da api-v2 do SoundCloud (busca, playlists, stream) |
+| `GET` | `/api/sc?alvo=web&u=/` | proxy do site — descobre o `client_id` |
 
 ---
 
@@ -167,7 +167,7 @@ Itens sincronizados: `sc:liked`, `sc:liked:data`, `sc:playlists`, `sc:recent`, `
 O Sonata consome a **API pública v2 do SoundCloud** — faixas em MP3 completo, sem chave de API.
 
 - O `client_id` é descoberto em tempo de execução a partir do `window.__sc_hydration`
-- O navegador nunca fala direto com o SoundCloud: o proxy fica em `server/sc.ts`, exposto em `/api/sc/api/*` (api-v2) e `/api/sc/web*` (site). É o **mesmo** código nos dois ambientes — middleware do Vite em dev, função `api/sc/[...path].ts` na Vercel
+- O navegador nunca fala direto com o SoundCloud: o proxy fica em `server/sc.ts` e é servido por `GET /api/sc?alvo=api|web&u=…`. É o **mesmo** código nos dois ambientes — middleware do Vite em dev, função `api/sc.ts` na Vercel. O caminho vai na query string porque o `api/` da Vercel só aceita dinâmico de **um** segmento (catch-all é recurso do Next.js)
 - O proxy manda um `User-Agent` fixo de desktop e segue os redirects **no servidor**: com UA de celular o SoundCloud responde 302 para `m.soundcloud.com` e o navegador derruba tudo por CORS (é por isso que não dá pra usar um rewrite externo da Vercel — ele repassa o UA do visitante)
 - As URLs de stream expiram em ~5 h; o player renova sozinho
 - ~3% das faixas não tocam — o player pula para a próxima automaticamente
