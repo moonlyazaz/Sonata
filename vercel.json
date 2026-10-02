@@ -10,14 +10,6 @@
     }
   },
   "rewrites": [
-    {
-      "source": "/sc/api/:path*",
-      "destination": "https://api-v2.soundcloud.com/:path*"
-    },
-    {
-      "source": "/sc/web/:path*",
-      "destination": "https://soundcloud.com/:path*"
-    },
-    { "source": "/((?!api/|sc/).*)", "destination": "/index.html" }
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }

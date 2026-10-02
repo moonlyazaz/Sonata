@@ -1,5 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { HttpError, match, type Ctx, type Result } from './routes.js';
+import { parseScPath, proxySc } from './sc.js';
 
 /**
  * Adaptador Node → rotas.
@@ -64,6 +65,15 @@ function send(res: ServerResponse, status: number, json: unknown, setCookie?: st
 export async function serveApi(req: IncomingMessage, res: ServerResponse): Promise<void> {
   try {
     const url = new URL(req.url ?? '/', 'http://sonata.local');
+
+    // Proxy do SoundCloud — fora da tabela de rotas: devolve HTML/JSON cru,
+    // sem passar pelo `send()` que sempre manda application/json.
+    const sc = parseScPath(url.pathname);
+    if (sc) {
+      await proxySc(sc.alvo, sc.caminho, url.search, res);
+      return;
+    }
+
     const handler = match(req.method ?? 'GET', url.pathname);
 
     if (!handler) {

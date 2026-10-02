@@ -5,23 +5,6 @@ import tailwindcss from '@tailwindcss/vite';
 import { serveApi } from './server/serve.js';
 
 /**
- * Proxies para contornar CORS:
- *
- * - `/sc/api/*`  → api-v2.soundcloud.com  (busca, playlists, resolução de stream)
- * - `/sc/web/*`  → soundcloud.com         (só para descobrir o client_id na home)
- *
- * A API do SoundCloud não envia `Access-Control-Allow-Origin`, então todo
- * request de dados passa por aqui. Os streams de MP3 e os assets (imagens/JS)
- * vêm de CDN com CORS próprio e podem ser usados direto.
- */
-const SC_HEADERS = {
-  origin: 'https://soundcloud.com',
-  referer: 'https://soundcloud.com/',
-  'user-agent':
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-};
-
-/**
  * A API em dev.
  *
  * Em produção as rotas vivem em `api/*.ts` e a Vercel as executa isoladas. Aqui
@@ -65,31 +48,8 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       port: 5173,
-      proxy: {
-        '/sc/api': {
-          target: 'https://api-v2.soundcloud.com',
-          changeOrigin: true,
-          headers: SC_HEADERS,
-          rewrite: (path) => path.replace(/^\/sc\/api/, ''),
-          configure: (proxy) => {
-            proxy.on('proxyRes', (proxyRes) => {
-              proxyRes.headers['access-control-allow-origin'] = '*';
-            });
-          },
-        },
-        '/sc/web': {
-          target: 'https://soundcloud.com',
-          changeOrigin: true,
-          headers: SC_HEADERS,
-          // `|| '/'` — o cliente pede `/sc/web` sem barra, e o alvo precisa de caminho.
-          rewrite: (path) => path.replace(/^\/sc\/web/, '') || '/',
-          configure: (proxy) => {
-            proxy.on('proxyRes', (proxyRes) => {
-              proxyRes.headers['access-control-allow-origin'] = '*';
-            });
-          },
-        },
-      },
+      // Sem `server.proxy`: o proxy do SoundCloud vive em `server/sc.ts` e chega
+      // aqui pelo `apiPlugin`, igual chega na Vercel.
     },
   };
 });

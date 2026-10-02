@@ -1,8 +1,8 @@
 /**
- * Cliente da API pública do SoundCloud (api-v2), via proxy do Vite.
+ * Cliente da API pública do SoundCloud (api-v2), via proxy da própria Sonata.
  *
  * A API exige um `client_id` que rotaciona. Em vez de fixá-lo no código,
- * descobrimos ele na home do SoundCloud (`/sc/web/`) — a resposta traz
+ * descobrimos ele na home do SoundCloud (`/api/sc/web`) — a resposta traz
  * `window.__sc_hydration` com `{hydratable: "apiClient", data: {id: "..."}}`.
  *
  * Endpoints usados (todos testados ao vivo):
@@ -16,8 +16,10 @@
  *   GET /media/{urn}/stream/progressive → URL assinada do MP3 completo
  */
 
-const API = '/sc/api';
-const WEB = '/sc/web';
+// Mesmo caminho no dev e na produção: as duas rotas caem no `serveApi`
+// (middleware do Vite em dev, função `api/sc/[...path].ts` na Vercel).
+const API = '/api/sc/api';
+const WEB = '/api/sc/web';
 
 /* ------------------------------------------------------------------ */
 /* client_id                                                           */
@@ -27,7 +29,7 @@ let clientId: string | null = null;
 let pendingId: Promise<string> | null = null;
 
 async function fetchClientId(): Promise<string> {
-  // Sem barra final: no rewrite da Vercel `/sc/web/:path*` não casa `/sc/web/`.
+  // Sem barra final: `/api/sc/web` cai no catch-all e vira `soundcloud.com/`.
   const res = await fetch(WEB);
   if (!res.ok) throw new Error(`SoundCloud home ${res.status}`);
 
