@@ -1,4 +1,5 @@
 import { Loader2, ListMusic, Maximize2, Pause, Play, Repeat, Repeat1, Shuffle, SkipBack, SkipForward, Heart } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { SeekBar } from './SeekBar';
 import { VolumeControl } from './VolumeControl';
 import { bigArtwork } from '@/lib/soundcloud';
@@ -38,11 +39,16 @@ export function PlayerBar() {
   const isLiked = useLibraryStore((s) => (track ? s.likedIds.includes(track.id) : false));
   const toggleLike = useLibraryStore((s) => s.toggleLike);
 
-  // Sem faixa → barra ociosa (mantém a altura para não saltar o layout)
+  // A barra só monta quando existe faixa — quem decide é o `AppShell`, assim o
+  // `AnimatePresence` consegue animar a saída. Aqui é só o estreitamento de tipo.
   const hasTrack = Boolean(track);
 
   return (
-    <footer
+    <motion.footer
+      initial={{ y: '110%', opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      exit={{ y: '110%', opacity: 0 }}
+      transition={{ type: 'spring', stiffness: 340, damping: 34 }}
       className="glass-liquid glass-liquid--bar fixed right-0 bottom-0 left-0 z-40 flex h-[var(--player-h)] items-center gap-4 px-4"
       role="contentinfo"
       aria-label="Player"
@@ -204,6 +210,6 @@ export function PlayerBar() {
           <Maximize2 size={16} />
         </button>
       </div>
-    </footer>
+    </motion.footer>
   );
 }

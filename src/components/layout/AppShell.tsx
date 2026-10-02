@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Outlet } from 'react-router-dom';
+import { AnimatePresence } from 'framer-motion';
 import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
 import { PlayerBar } from '@/components/player/PlayerBar';
@@ -16,13 +17,16 @@ import { startPlayer, usePlayerStore } from '@/stores/playerStore';
  * [fundo animado]
  * [sidebar] [ topbar
  *            conteúdo (rota)     ] [fila?]
- * [        player bar fixa                  ]
+ * [     player bar fixa — só quando há faixa      ]
  */
 export function AppShell() {
   const [menuOpen, setMenuOpen] = useState(false);
   const isMobile = useMediaQuery(BREAKPOINTS.mobile);
   const isTablet = useMediaQuery(BREAKPOINTS.tablet);
   const queueOpen = usePlayerStore((s) => s.queueOpen);
+  // Existe barra só quando há faixa — e o espaço dela no rodapé do conteúdo
+  // aparece junto, senão o scroll saltaria de altura de um pro outro.
+  const hasTrack = usePlayerStore((s) => Boolean(s.queue[s.index]));
 
   const closeMenu = useCallback(() => setMenuOpen(false), []);
   const openMenu = useCallback(() => setMenuOpen(true), []);
@@ -49,7 +53,11 @@ export function AppShell() {
         <div className="flex min-w-0 flex-1 flex-col">
           <TopBar onOpenMenu={openMenu} />
 
-          <main className="glass-scroll min-h-0 flex-1 overflow-y-auto pt-2 pr-1 pb-[calc(var(--player-h)+16px)]">
+          <main
+            className={`glass-scroll min-h-0 flex-1 overflow-y-auto pt-2 pr-1 transition-[padding-bottom] duration-300 ${
+              hasTrack ? 'pb-[calc(var(--player-h)+16px)]' : 'pb-4'
+            }`}
+          >
             <div className="mx-auto w-full max-w-7xl px-2 sm:px-4">
               <Outlet />
             </div>
@@ -65,7 +73,7 @@ export function AppShell() {
         {queueOpen && isTablet && <QueueOverlay onClose={() => usePlayerStore.getState().setQueueOpen(false)} />}
       </div>
 
-      <PlayerBar />
+      <AnimatePresence>{hasTrack && <PlayerBar key="player" />}</AnimatePresence>
       <ExpandedPlayer />
       {/* modal único de "adicionar à playlist", aberto por qualquer TrackRow */}
       <AddToPlaylistMenu />
