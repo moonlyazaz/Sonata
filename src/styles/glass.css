@@ -1,0 +1,540 @@
+/* =========================================================
+   LIQUID GLASS — componentes utilitários
+   ========================================================= */
+
+/* Keyframes não participam de camadas, então fica fora. */
+@keyframes shimmer {
+  from {
+    background-position: -200% 0;
+  }
+  to {
+    background-position: 200% 0;
+  }
+}
+
+/*
+  Estas classes vivem em @layer components de propósito: assim as
+  utilidades do Tailwind (que estão em @layer utilities) conseguem
+  sobrescrevê-las. Sem essa separação, .glass-btn { padding } anulava
+  os tamanhos do GlassButton (px-4/py-2/text-sm) e .glass-icon-btn
+  { color } anulava o .text-accent — o coração nunca ficava azul.
+*/
+@layer components {
+
+/* Painel de vidro (sidebar, modais, cartões grandes) */
+.glass-panel {
+  position: relative;
+  background: var(--glass-bg);
+  backdrop-filter: var(--blur-panel);
+  -webkit-backdrop-filter: var(--blur-panel);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+  overflow: hidden;
+}
+
+/* Brilho especular no topo (a "lâmina" do vidro) */
+.glass-panel::before,
+.glass-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 55%;
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.12),
+    rgba(255, 255, 255, 0) 70%
+  );
+  pointer-events: none;
+  border-radius: inherit;
+  z-index: 0;
+}
+
+/* Cartão de vidro (cards de conteúdo) */
+.glass-card {
+  position: relative;
+  background: var(--glass-bg);
+  backdrop-filter: var(--blur-card);
+  -webkit-backdrop-filter: var(--blur-card);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--glass-highlight);
+  transition:
+    background var(--dur) var(--ease),
+    border-color var(--dur) var(--ease),
+    transform var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease);
+  overflow: hidden;
+}
+
+.glass-card:hover {
+  background: var(--glass-bg-hover);
+  border-color: var(--glass-border-strong);
+  transform: translateY(-2px);
+  box-shadow:
+    var(--glass-highlight),
+    0 16px 40px rgba(0, 0, 0, 0.4);
+}
+
+.glass-card:active {
+  transform: translateY(0) scale(0.99);
+}
+
+/* =========================================================
+   LIQUID GLASS — o "vidro líquido" do player
+   Diferença do .glass-panel: dois gradientes sobrepostos (um
+   deles é a inclinação especular que escorre pela superfície),
+   luz de contorno por dentro em todas as arestas e saturação
+   alta no blur para o fundo "derreter" atrás do vidro.
+   ========================================================= */
+.glass-liquid {
+  position: relative;
+  background:
+    linear-gradient(
+      115deg,
+      transparent 30%,
+      rgba(255, 255, 255, 0.14) 47%,
+      rgba(255, 255, 255, 0.03) 56%,
+      transparent 72%
+    ),
+    linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0.13) 0%,
+      rgba(255, 255, 255, 0.05) 45%,
+      rgba(255, 255, 255, 0.09) 100%
+    );
+  backdrop-filter: var(--blur-thick);
+  -webkit-backdrop-filter: var(--blur-thick);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 0 48px rgba(255, 255, 255, 0.05),
+    0 12px 48px rgba(0, 0, 0, 0.55);
+}
+
+/* Variante de barra fixa: só a aresta superior é vidro exposto */
+.glass-liquid--bar {
+  border-right: 0;
+  border-bottom: 0;
+  border-left: 0;
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  /* É uma superfície grande sempre visível sobre conteúdo que rola:
+     blur menor custa bem menos que --blur-thick e o efeito é igual. */
+  backdrop-filter: var(--blur-panel);
+  -webkit-backdrop-filter: var(--blur-panel);
+}
+
+/* Bolha do player: painel flutuante com cantos totalmente arredondados */
+.glass-liquid--sheet {
+  border-radius: var(--radius-xl);
+}
+
+/* Botão de vidro */
+.glass-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: var(--radius-full);
+  background: var(--glass-bg-strong);
+  backdrop-filter: var(--blur-card);
+  -webkit-backdrop-filter: var(--blur-card);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-highlight);
+  font-weight: 600;
+  font-size: 14px;
+  transition:
+    background var(--dur) var(--ease),
+    border-color var(--dur) var(--ease),
+    transform var(--dur) var(--ease);
+}
+
+.glass-btn:hover {
+  background: var(--glass-bg-hover);
+  border-color: var(--glass-border-strong);
+  transform: scale(1.03);
+}
+
+.glass-btn:active {
+  transform: scale(0.97);
+}
+
+.glass-btn--accent {
+  background: var(--accent);
+  border-color: transparent;
+  color: #04121d;
+}
+
+.glass-btn--accent:hover {
+  background: var(--accent-hover);
+}
+
+/* Botão redondo ícone */
+.glass-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-full);
+  color: var(--text-muted);
+  transition:
+    color var(--dur) var(--ease),
+    background var(--dur) var(--ease),
+    transform var(--dur) var(--ease);
+}
+
+.glass-icon-btn:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.glass-icon-btn:active {
+  transform: scale(0.92);
+}
+
+.glass-icon-btn.is-active {
+  color: var(--accent);
+}
+
+/* Campo de busca de vidro */
+.glass-input {
+  width: 100%;
+  padding: 12px 18px;
+  border-radius: var(--radius-full);
+  background: var(--glass-bg);
+  backdrop-filter: var(--blur-card);
+  -webkit-backdrop-filter: var(--blur-card);
+  border: 1px solid var(--glass-border);
+  color: var(--text);
+  outline: none;
+  transition:
+    background var(--dur) var(--ease),
+    border-color var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease);
+}
+
+.glass-input::placeholder {
+  color: var(--text-faint);
+}
+
+.glass-input:focus {
+  background: var(--glass-bg-strong);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
+/* Slider de vidro (seek / volume) */
+.glass-slider {
+  --value: 0%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 16px;
+  flex: 1;
+  cursor: pointer;
+  touch-action: none;
+}
+
+.glass-slider__track {
+  position: relative;
+  width: 100%;
+  height: 5px;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.16);
+  overflow: hidden;
+  transition: height 140ms var(--ease);
+}
+
+.glass-slider:hover .glass-slider__track {
+  height: 7px;
+}
+
+.glass-slider__fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--value);
+  background: #ffffff;
+  border-radius: var(--radius-full);
+  transition: background 160ms var(--ease);
+}
+
+.glass-slider:hover .glass-slider__fill {
+  background: var(--accent);
+}
+
+.glass-slider__thumb {
+  position: absolute;
+  left: var(--value);
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.6);
+  transform: translateX(-50%) scale(0);
+  transition:
+    transform 160ms var(--ease),
+    box-shadow 160ms var(--ease);
+}
+
+.glass-slider:hover .glass-slider__thumb {
+  transform: translateX(-50%) scale(1);
+}
+
+.glass-slider:hover .glass-slider__thumb {
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 70%, transparent);
+}
+
+/* Chip / filtro */
+.glass-chip {
+  padding: 7px 16px;
+  border-radius: var(--radius-full);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  transition:
+    background var(--dur) var(--ease),
+    color var(--dur) var(--ease);
+  white-space: nowrap;
+}
+
+.glass-chip:hover {
+  background: var(--glass-bg-hover);
+  color: var(--text);
+}
+
+.glass-chip.is-active {
+  background: #fff;
+  border-color: #fff;
+  color: #050505;
+}
+
+.glass-skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.05) 25%,
+    rgba(255, 255, 255, 0.14) 50%,
+    rgba(255, 255, 255, 0.05) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s linear infinite;
+  border-radius: var(--radius-md);
+}
+
+/* Navegação lateral */
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 14px;
+  transition:
+    background var(--dur) var(--ease),
+    color var(--dur) var(--ease);
+}
+
+.nav-item:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--text);
+}
+
+.nav-item.is-active {
+  background: var(--glass-bg-strong);
+  color: var(--text);
+  box-shadow: var(--glass-highlight);
+}
+
+/* ─── Marca Sonata ────────────────────────────────────────────────────────── */
+
+/**
+ * A logo da Sonata — a MESMA da splash do `index.html` e do `favicon.svg`:
+ * círculo com gradiente `#38bdf8 → #0284c7 → #082f49` e quatro barras
+ * brancas por cima. Pintura chapada: sem backdrop-filter, sem aro, sem
+ * especular, sem sombra gravada. Se mexer aqui, mexe no <svg> da #boot e no
+ * `public/favicon.svg` — as três precisam ser iguais.
+ *
+ * `box-sizing: border-box` vem do preflight do Tailwind. Sem borda de 1px,
+ * o SVG ocupa o `size` inteiro — mesma proporção do SVG da splash.
+ */
+.sonata-mark {
+  position: relative;
+  display: inline-block;
+  flex: none;
+  box-sizing: border-box;
+  overflow: hidden;
+  border-radius: 50%;
+
+  /* Mesmo gradiente da #boot: eixo (8,4)→(56,62) num viewBox 64 = 140deg */
+  background: linear-gradient(140deg, #38bdf8 0%, #0284c7 40%, #082f49 100%);
+
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+}
+
+.sonata-mark svg {
+  display: block;
+  border-radius: 50%;
+}
+
+/**
+ * Wordmark com o mesmo tratamento de vidro: corpo translúcido, faixa de
+ * reflexo diagonal e relevo por `drop-shadow`. Precisa de `background-clip:
+ * text`, sem o qual o texto ficaria invisível — por isso só roda dentro de
+ * `@supports`, com branco sólido como fallback.
+ */
+.sonata-word {
+  display: inline-block;
+  color: #fff;
+}
+
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  .sonata-word {
+    background-image:
+      /* reflexo diagonal atravessando as letras */
+      linear-gradient(
+        102deg,
+        rgba(255, 255, 255, 0) 34%,
+        rgba(168, 224, 255, 0.85) 46%,
+        rgba(255, 255, 255, 0) 58%
+      ),
+      /* corpo do vidro: branco em cima, tinta celeste no meio, branco embaixo */
+      linear-gradient(
+        180deg,
+        #ffffff 0%,
+        #eaf6ff 44%,
+        #c9e9ff 56%,
+        #ffffff 100%
+      );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.55));
+  }
+}
+
+/* ─── Login / cadastro ───────────────────────────────────────────────────── */
+
+/**
+ * Preenchimento automático sem fundo branco.
+ *
+ * O Chrome pinta o `background-color` de um campo autofill de branco/amarelo e
+ * escreve o texto em preto — por cima de qualquer `background` nosso. Duas
+ * defesas, de dentro para fora:
+ *
+ *  1. `transition: background-color 1000000s` congela a troca de cor: ela
+ *     nunca termina, logo o branco nunca chega a ser pintado.
+ *  2. `inset box-shadow` escuro cobre a área do campo por cima do
+ *     `background-color` (sombra interna pinta acima do fundo, abaixo do
+ *     texto) — rede de segurança para o caso de a 1. não colar numa versão.
+ *     `rgba(6,12,20,.85)` sobre branco resulta em #2b3037, e sobre o nosso
+ *     vidro praticamente não muda a aparência.
+ *
+ * `-webkit-text-fill-color` garante que a LETRA continue branca em ambos os
+ * casos, que é a outra metade do que foi pedido.
+ */
+.glass-input:-webkit-autofill,
+.glass-input:-webkit-autofill:hover,
+.glass-input:-webkit-autofill:active,
+.glass-input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--text);
+  caret-color: var(--text);
+  color: var(--text);
+  transition: background-color 1000000s ease-out 0s;
+  -webkit-box-shadow:
+    inset 0 0 0 1000px rgba(6, 12, 20, 0.85),
+    0 0 0 0 transparent;
+  box-shadow:
+    inset 0 0 0 1000px rgba(6, 12, 20, 0.85),
+    0 0 0 0 transparent;
+}
+
+/* Firefox e Safari moderno */
+.glass-input:-moz-autofill {
+  -moz-text-fill-color: var(--text);
+  color: var(--text);
+  box-shadow: inset 0 0 0 1000px rgba(6, 12, 20, 0.85);
+}
+
+/* O anel de foco do `.glass-input:focus` tem menor especificidade que a regra
+   acima — sem isto, o campo autofill focado perderia o contorno de acento. */
+.glass-input:-webkit-autofill:focus {
+  border-color: var(--accent);
+  -webkit-box-shadow:
+    inset 0 0 0 1000px rgba(6, 12, 20, 0.85),
+    0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent);
+  box-shadow:
+    inset 0 0 0 1000px rgba(6, 12, 20, 0.85),
+    0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
+/* Seletor de modo: Entrar / Criar conta */
+.glass-tabs {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 4px;
+  margin-bottom: 22px;
+  padding: 4px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-full);
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: var(--blur-card);
+  -webkit-backdrop-filter: var(--blur-card);
+}
+
+.glass-tabs__btn {
+  padding: 9px 12px;
+  border-radius: var(--radius-full);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition:
+    background var(--dur) var(--ease),
+    color var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease);
+}
+
+.glass-tabs__btn:hover {
+  color: var(--text);
+}
+
+.glass-tabs__btn[aria-selected='true'] {
+  color: #061a26;
+  background: linear-gradient(180deg, var(--accent-hover), var(--accent));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    0 2px 10px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+.glass-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-bottom: 15px;
+}
+
+.glass-field > label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.glass-erro {
+  margin: 0 0 15px;
+  padding: 10px 14px;
+  border: 1px solid color-mix(in srgb, var(--danger) 45%, transparent);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--danger) 14%, transparent);
+  color: #ffd9de;
+  font-size: 13.5px;
+  line-height: 1.45;
+}
+
+} /* fim @layer components */

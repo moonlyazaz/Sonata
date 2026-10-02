@@ -1,0 +1,264 @@
+@import 'tailwindcss';
+
+/* =========================================================
+   DESIGN TOKENS — Liquid Glass
+   ========================================================= */
+:root {
+  /* Vidro */
+  --glass-bg: rgba(255, 255, 255, 0.06);
+  --glass-bg-strong: rgba(255, 255, 255, 0.1);
+  --glass-bg-hover: rgba(255, 255, 255, 0.14);
+  --glass-border: rgba(255, 255, 255, 0.14);
+  --glass-border-strong: rgba(255, 255, 255, 0.24);
+  --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+  --blur-panel: saturate(180%) blur(24px);
+  --blur-card: saturate(160%) blur(12px);
+  --blur-thick: saturate(200%) blur(40px);
+
+  /* Cores */
+  --bg-base: #050505;
+  --surface: rgba(18, 18, 18, 0.72);
+  --surface-hover: rgba(255, 255, 255, 0.05);
+  --text: #ffffff;
+  --text-muted: rgba(255, 255, 255, 0.6);
+  --text-faint: rgba(255, 255, 255, 0.4);
+  --accent: #38bdf8;
+  --accent-hover: #7dd3fc;
+  --danger: #f1354b;
+
+  /* Forma */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 24px;
+  --radius-xl: 32px;
+  --radius-full: 9999px;
+
+  /* Layout */
+  --sidebar-w: 264px;
+  --topbar-h: 64px;
+  --player-h: 88px;
+  --rightpanel-w: 340px;
+
+  /* Animação */
+  --ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --dur: 220ms;
+}
+
+/* =========================================================
+   RESET / BASE
+   =========================================================
+   Importante: estas regras ficam DENTRO de @layer base.
+   Fora de camada elas venceriam as utilidades do Tailwind
+   (que vivem em @layer utilities) e anulariam bg-white,
+   text-black, p-* etc. em todo botão — foi exatamente isso
+   que deixou o play/pause invisível na barra do player.
+*/
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: var(--bg-base);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+      Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+
+  button {
+    font: inherit;
+    color: inherit;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+  }
+
+  input {
+    font: inherit;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  img {
+    display: block;
+    max-width: 100%;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--accent) 40%, transparent);
+  }
+}
+
+/* =========================================================
+   FUNDO — blobs de gradiente animados atrás do vidro
+   ========================================================= */
+.app-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: var(--bg-base);
+}
+
+.app-bg__blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(120px);
+  opacity: 0.42;
+  will-change: transform;
+}
+
+.app-bg__blob--1 {
+  width: 46vw;
+  height: 46vw;
+  top: -12vw;
+  left: -8vw;
+  background: radial-gradient(circle at 30% 30%, #38bdf8, transparent 65%);
+  animation: drift-a 26s var(--ease) infinite alternate;
+}
+
+.app-bg__blob--2 {
+  width: 42vw;
+  height: 42vw;
+  bottom: -14vw;
+  right: -6vw;
+  background: radial-gradient(circle at 60% 40%, #2563eb, transparent 65%);
+  animation: drift-b 32s var(--ease) infinite alternate;
+}
+
+.app-bg__blob--3 {
+  width: 34vw;
+  height: 34vw;
+  top: 38%;
+  left: 44%;
+  background: radial-gradient(circle at 50% 50%, #67e8f9, transparent 68%);
+  opacity: 0.3;
+  animation: drift-c 38s var(--ease) infinite alternate;
+}
+
+@keyframes drift-a {
+  to {
+    transform: translate3d(9vw, 7vh, 0) scale(1.15);
+  }
+}
+@keyframes drift-b {
+  to {
+    transform: translate3d(-8vw, -9vh, 0) scale(1.1);
+  }
+}
+@keyframes drift-c {
+  to {
+    transform: translate3d(-6vw, 8vh, 0) scale(0.9);
+  }
+}
+
+/* =========================================================
+   SCROLLBAR
+   ========================================================= */
+.glass-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+
+.glass-scroll::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.glass-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.glass-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: var(--radius-full);
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+.glass-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+  background-clip: content-box;
+}
+
+/* =========================================================
+   UTILITÁRIOS
+   ========================================================= */
+.text-muted {
+  color: var(--text-muted);
+}
+.text-faint {
+  color: var(--text-faint);
+}
+.text-accent {
+  color: var(--accent);
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Barra azul animada na faixa tocando */
+.eq-bars {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 14px;
+}
+
+.eq-bars span {
+  width: 3px;
+  background: var(--accent);
+  border-radius: 2px;
+  animation: eq 0.9s ease-in-out infinite;
+}
+.eq-bars span:nth-child(1) {
+  animation-delay: 0s;
+}
+.eq-bars span:nth-child(2) {
+  animation-delay: 0.25s;
+}
+.eq-bars span:nth-child(3) {
+  animation-delay: 0.5s;
+}
+
+@keyframes eq {
+  0%,
+  100% {
+    height: 30%;
+  }
+  50% {
+    height: 100%;
+  }
+}
+
+/* =========================================================
+   MOVIMIENTO REDUZIDO
+   ========================================================= */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

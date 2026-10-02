@@ -1,0 +1,17 @@
+node_modules
+dist
+dist-ssr
+*.local
+
+# segredos — nunca subir
+.env
+.env.*
+!.env.example
+
+# logs e editor
+npm-debug.log*
+.DS_Store
+*.tsbuildinfo
+
+# Vercel
+.vercel

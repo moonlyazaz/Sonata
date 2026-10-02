@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Sonata">
+  <!--
+    Mesmíssima logo da splash (#boot) do index.html: mesmo gradiente,
+    mesma geometria das barras, sem especular/aro/sombra. Se mexer aqui,
+    mexe no <svg> do #boot — as duas precisam ser iguais.
+  -->
+  <defs>
+    <linearGradient id="body" x1="8" y1="4" x2="56" y2="62" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#38bdf8" />
+      <stop offset="0.4" stop-color="#0284c7" />
+      <stop offset="1" stop-color="#082f49" />
+    </linearGradient>
+  </defs>
+  <circle cx="32" cy="32" r="32" fill="url(#body)" />
+  <g fill="#ffffff">
+    <rect x="12" y="25" width="7" height="14" rx="3.5" />
+    <rect x="23" y="16" width="7" height="32" rx="3.5" />
+    <rect x="34" y="20" width="7" height="24" rx="3.5" />
+    <rect x="45" y="27" width="7" height="10" rx="3.5" />
+  </g>
+</svg>
