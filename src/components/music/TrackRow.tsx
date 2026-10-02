@@ -64,7 +64,7 @@ export function TrackRow({
 
   return (
     <li
-      className={`group flex items-center gap-4 rounded-xl px-3 py-2 transition ${
+      className={`group flex items-center gap-2 rounded-xl px-3 py-2 transition md:gap-4 ${
         isCurrent ? 'bg-white/8' : 'hover:bg-white/5'
       }`}
     >
@@ -118,7 +118,11 @@ export function TrackRow({
 
       <button
         className={`glass-icon-btn !h-8 !w-8 transition-opacity ${
-          isLiked ? 'text-accent opacity-100' : 'opacity-0 group-hover:opacity-100 focus-visible:opacity-100'
+          isLiked
+            ? 'text-accent opacity-100'
+            : // Sem hover no toque: no mobile o coração fica sempre visível —
+              // antes só os já curtidos apareciam, e o resto era um vazio de 32px.
+              'opacity-0 max-md:opacity-100 group-hover:opacity-100 focus-visible:opacity-100'
         }`}
         onClick={() => toggleLike(track)}
         aria-label={isLiked ? 'Remover das curtidas' : 'Adicionar às curtidas'}
@@ -131,8 +135,11 @@ export function TrackRow({
         {formatDuration(track.duration / 1000)}
       </span>
 
+      {/* Só desktop: no toque não existe hover, então o botão ficava invisível
+          mas ainda ocupando 32px — junto com o de playlist, era 64px roubados
+          do nome da faixa. */}
       <button
-        className="glass-icon-btn !h-8 !w-8 opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+        className="glass-icon-btn hidden !h-8 !w-8 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 md:inline-flex"
         onClick={() => enqueue(track, 'end', contextLabel)}
         aria-label={`Adicionar ${track.title} à fila`}
         title="Adicionar à fila"
@@ -142,7 +149,7 @@ export function TrackRow({
 
       {onRemove ? (
         <button
-          className="glass-icon-btn !h-8 !w-8 text-red-400/80 opacity-0 transition group-hover:opacity-100 hover:text-red-400 focus-visible:opacity-100"
+          className="glass-icon-btn !h-8 !w-8 text-red-400/80 opacity-0 max-md:opacity-100 transition group-hover:opacity-100 hover:text-red-400 focus-visible:opacity-100"
           onClick={onRemove}
           aria-label={`Remover ${track.title} da playlist`}
           title="Remover da playlist"
@@ -151,7 +158,7 @@ export function TrackRow({
         </button>
       ) : (
         <button
-          className="glass-icon-btn !h-8 !w-8 opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+          className="glass-icon-btn !h-8 !w-8 opacity-0 max-md:opacity-100 group-hover:opacity-100 focus-visible:opacity-100"
           onClick={() => openPlaylistMenu(track)}
           aria-label={`Adicionar ${track.title} à playlist`}
           title="Adicionar à playlist"

@@ -104,6 +104,17 @@ export function PlayerBar() {
             >
               <Heart size={16} fill={isLiked ? 'currentColor' : 'none'} />
             </button>
+
+            {/* No desktop quem expande é o ícone do bloco da direita; no mobile
+                esse bloco é escondido, então o botão mora aqui, junto da capa. */}
+            <button
+              className="glass-icon-btn !h-8 !w-8 shrink-0 md:hidden"
+              onClick={() => setExpanded(true)}
+              aria-label="Tela cheia"
+              title="Tela cheia"
+            >
+              <Maximize2 size={16} />
+            </button>
           </>
         ) : (
           <p className="text-faint text-sm">Nada tocando</p>
