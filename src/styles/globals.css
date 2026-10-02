@@ -250,6 +250,29 @@
   }
 }
 
+/*
+ * Mesma geometria, mas com a altura vindo da música real: `lib/audio.ts`
+ * escreve `--eq-1/2/3` no `<html>` a cada frame enquanto houver um `EqBars`
+ * montado.
+ *
+ * O `animation: none` é obrigatório — keyframes têm precedência sobre
+ * declarações normais, então a animação falsa tem que morrer antes de
+ * `height: var(...)` valer. Sem o grafo (nenhum toque na página) a classe
+ * `eq-live` não existe e tudo continua no `@keyframes eq` de sempre.
+ */
+.eq-live .eq-bars span {
+  animation: none;
+}
+.eq-live .eq-bars span:nth-child(1) {
+  height: var(--eq-1, 30%);
+}
+.eq-live .eq-bars span:nth-child(2) {
+  height: var(--eq-2, 30%);
+}
+.eq-live .eq-bars span:nth-child(3) {
+  height: var(--eq-3, 30%);
+}
+
 /* =========================================================
    MOVIMIENTO REDUZIDO
    ========================================================= */

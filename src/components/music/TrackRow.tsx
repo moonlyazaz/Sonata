@@ -1,4 +1,6 @@
 import { FolderPlus, Heart, ListPlus, Trash2 } from 'lucide-react';
+import { useEffect } from 'react';
+import { ativarEqBars } from '@/lib/audio';
 import { formatDuration } from '@/lib/format';
 import { bigArtwork, type ScTrack } from '@/lib/soundcloud';
 import { useLibraryStore } from '@/stores/libraryStore';
@@ -163,8 +165,17 @@ export function TrackRow({
   );
 }
 
-/** Barrinhas animadas indicando que a faixa está tocando. */
+/**
+ * Barrinhas indicando que a faixa está tocando.
+ *
+ * Enquanto existe um `EqBars` montado na página, o loop compartilhado de
+ * `lib/audio.ts` escreve `--eq-1/2/3` no `<html>` e as alturas passam a vir
+ * da FFT real. No desmount o loop morre e volta a animação CSS — que é o que
+ * aparece antes de qualquer toque, quando o grafo ainda nem existe.
+ */
 function EqBars() {
+  useEffect(() => ativarEqBars(), []);
+
   return (
     <span className="eq-bars" aria-label="Tocando">
       <span />

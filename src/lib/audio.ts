@@ -53,18 +53,22 @@ export function initAudio(handlers: {
 /* ------------------------------------------------------------------ */
 
 /*
- * O caminho só é aberto quando alguém abre o player expandido: até lá o áudio
- * continua no caminho direto do elemento, sem nenhuma chance de dar errado.
+ * O grafo nasce no PRIMEIRO gesto do usuário (pointerdown/keydown lá embaixo),
+ * não quando o visualizador abre: assim o AudioContext já nasce `running`
+ * antes de qualquer música tocar e todo áudio seguinte rota por ele sem risco
+ * de silêncio. Até esse primeiro toque o áudio segue direto no elemento.
  *
  * Dois pontos que derrubam a reprodução se errarem:
  *
  *  1. `createMediaElementSource` DESCONECTA a saída do elemento — é obrigatório
- *     encadear `source → analyser → gain → destination`. Sem o `destination`
- *     o player toca mas fica mudo.
- *  2. `AudioContext` nasce `suspended` fora de um gesto → tudo mudo. Por isso o
- *     grafo é criado dentro do clique que abre a tela cheia, e qualquer
- *     `pointerdown`/`keydown` seguinte tenta acordá-lo de novo (é o que salva
- *     no iOS, que suspenso o contexto em segundo plano).
+ *     encadear até `destination`. A ligação direta é feita ANTES de construir
+ *     a cadeia, como garantia: se algo falhar no meio, o som continua (talvez
+ *     duplicado, mas nunca mudo).
+ *  2. `AudioContext` criado FORA de um gesto nasce `suspended` — o áudio
+ *     roteado pra um contexto suspenso sai mudo. Por isso `criarGrafo` só é
+ *     chamado de dentro do listener de gesto, nunca de um `getAnalyser()` nem
+ *     de um loop de rAF. O `pointerdown`/`keydown` seguinte reacorda o
+ *     contexto (é o que salva no iOS, que o suspenso em segundo plano).
  *
  * Pré-requisito de CORS, já verificado nos dois lados: o `<audio>` está com
  * `crossOrigin = 'anonymous'` (linha 9) e o CDN do SoundCloud devolve
@@ -158,13 +162,14 @@ function acordar(): void {
 }
 
 /**
- * Analyser do espectro, ou `null` se o Web Audio não estiver disponível.
- * Criado sob demanda — a primeira chamada vem do efeito do player expandido,
- * que só monta depois de um clique.
+ * Analyser do espectro, ou `null` enquanto o grafo não existe.
+ *
+ * Leitor puro, sem efeito colateral — NÃO cria nada aqui de propósito. A
+ * criação acontece só no listener de gesto lá embaixo: um `new AudioContext()`
+ * fora de um gesto nasce `suspended`, e o áudio roteado pra um contexto
+ * suspenso sai mudo.
  */
 export function getAnalyser(): AnalyserNode | null {
-  if (!analyser) criarGrafo();
-  if (analyser) acordar();
   return analyser;
 }
 
@@ -189,11 +194,97 @@ export function setAudioMuted(m: boolean): void {
   if (gain) gain.gain.value = m ? 0 : volume;
 }
 
-// Rede de segurança: o contexto pode ser suspenso pelo navegador (política de
-// autoplay, aba em segundo plano no iOS). Qualquer toque acorda. Enquanto o
-// grafo não existe, tudo aqui é no-op de uma checagem de null.
+/* ------------------------------------------------------------------ */
+/* Barras do "tocando agora" (TrackRow.eq-bars)                        */
+/* ------------------------------------------------------------------ */
+
+/*
+ * Um só loop pro app inteiro: um `requestAnimationFrame` por `EqBars` seria
+ * desperdício, e re-renderizar React 60×/s por faixa seria caro. Aqui o loop
+ * lê a FFT e escreve `--eq-1/2/3` direto no `<html>`; o CSS (globals.css)
+ * só troca a altura dessas variáveis. Zero re-render, e todas as barrinhas
+ * sincronizam sozinhas.
+ */
+
+const eqRaiz: HTMLElement | null =
+  typeof document === 'undefined' ? null : document.documentElement;
+const eqNiveis = [0, 0, 0];
+/** grave · médio · agudo — fatias dos 256 bins do fftSize 512 */
+const EQ_FAIXAS: ReadonlyArray<readonly [number, number]> = [
+  [1, 8],
+  [8, 40],
+  [40, 120],
+];
+
+let eqRefs = 0;
+let eqRaf = 0;
+let eqDados = new Uint8Array(0);
+
+function eqTick(): void {
+  eqRaf = requestAnimationFrame(eqTick);
+
+  const an = getAnalyser();
+  // Sem grafo (nenhum toque na página ainda) a gente só espera: o CSS mantém
+  // a animação falsa de sempre e ninguém nota a troca.
+  if (!an || !eqRaiz) return;
+
+  if (eqDados.length !== an.frequencyBinCount) eqDados = new Uint8Array(an.frequencyBinCount);
+  an.getByteFrequencyData(eqDados);
+
+  eqRaiz.classList.add('eq-live');
+
+  for (let b = 0; b < 3; b++) {
+    const [ini, fim] = EQ_FAIXAS[b];
+    let soma = 0;
+    let n = 0;
+    for (let i = ini; i < fim && i < eqDados.length; i++) {
+      soma += eqDados[i];
+      n++;
+    }
+    const alvo = n ? (soma / n / 255) ** 0.8 : 0;
+    const atual = eqNiveis[b];
+    // ataque rápido, queda lenta — o mesmo truque das barras do visualizador
+    eqNiveis[b] = alvo > atual ? atual + (alvo - atual) * 0.45 : Math.max(0, atual - 0.065);
+    // 25%..100%, a mesma faixa que o `@keyframes eq` usava
+    eqRaiz.style.setProperty(`--eq-${b + 1}`, `${(25 + eqNiveis[b] * 75).toFixed(1)}%`);
+  }
+}
+
+/**
+ * Liga/desliga o loop das barrinhas (refcount). `EqBars` chama na montagem e
+ * cancela na desmontagem — quando o último sai, o loop morre e a classe
+ * `eq-live` volta pro CSS animado.
+ */
+export function ativarEqBars(): () => void {
+  eqRefs += 1;
+  if (eqRefs === 1 && !eqRaf) eqRaf = requestAnimationFrame(eqTick);
+
+  return () => {
+    eqRefs -= 1;
+    if (eqRefs > 0 || !eqRaf) return;
+    cancelAnimationFrame(eqRaf);
+    eqRaf = 0;
+    eqRaiz?.classList.remove('eq-live');
+    eqRaiz?.style.removeProperty('--eq-1');
+    eqRaiz?.style.removeProperty('--eq-2');
+    eqRaiz?.style.removeProperty('--eq-3');
+    eqNiveis[0] = eqNiveis[1] = eqNiveis[2] = 0;
+  };
+}
+
+/*
+ * GESTO — é aqui, e só aqui, que o grafo é criado. `criarGrafo` é
+ * idempotente (um `analyser` já existente devolve na hora), então pode ficar
+ * em todo toque: custa uma checagem de null e garante que o AudioContext
+ * nasça `running` dentro da ativação do usuário. É também a rede de segurança
+ * contra o contexto ser suspenso (autoplay, aba em segundo plano no iOS).
+ */
 if (typeof window !== 'undefined') {
-  window.addEventListener('pointerdown', acordar, { capture: true });
-  window.addEventListener('keydown', acordar, { capture: true });
+  const gesto = () => {
+    criarGrafo();
+    acordar();
+  };
+  window.addEventListener('pointerdown', gesto, { capture: true });
+  window.addEventListener('keydown', gesto, { capture: true });
   document.addEventListener('visibilitychange', acordar);
 }
