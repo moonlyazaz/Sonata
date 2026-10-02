@@ -1,4 +1,4 @@
-import { FolderPlus, Heart, ListPlus, Pause, Play, Trash2 } from 'lucide-react';
+import { FolderPlus, Heart, ListPlus, Trash2 } from 'lucide-react';
 import { formatDuration } from '@/lib/format';
 import { bigArtwork, type ScTrack } from '@/lib/soundcloud';
 import { useLibraryStore } from '@/stores/libraryStore';
@@ -69,22 +69,15 @@ export function TrackRow({
       }`}
     >
       {index !== undefined && (
-        <span className="relative w-5 shrink-0 text-right text-sm tabular-nums">
-          <span className={`${isCurrent ? 'text-accent' : 'text-faint'} group-hover:hidden`}>
-            {active ? <EqBars /> : index}
-          </span>
-          <button
-            className="absolute inset-0 hidden items-center justify-center text-white group-hover:flex"
-            onClick={handlePlay}
-            aria-label={playLabel}
-            title={active ? 'Pausar' : 'Tocar'}
-          >
-            {active ? (
-              <Pause size={14} fill="currentColor" />
-            ) : (
-              <Play size={14} fill="currentColor" />
-            )}
-          </button>
+        /* Só o número. Antes o hover trocava por um ▶/⏸ — mas clicar no título
+           já chama `handlePlay`, então o botão não acrescentava nada e sumia
+           com a posição da faixa. */
+        <span
+          className={`w-5 shrink-0 text-right text-sm tabular-nums ${
+            isCurrent ? 'text-accent' : 'text-faint'
+          }`}
+        >
+          {active ? <EqBars /> : index}
         </span>
       )}
 
