@@ -2,7 +2,7 @@ import { fileURLToPath, URL } from 'node:url';
 import { defineConfig, loadEnv, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
-import { serveApi } from './server/serve';
+import { serveApi } from './server/serve.js';
 
 /**
  * Proxies para contornar CORS:

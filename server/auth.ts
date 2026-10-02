@@ -5,7 +5,7 @@ import {
   timingSafeEqual,
   type ScryptOptions,
 } from 'node:crypto';
-import { ensureSchema, rows, sql } from './db';
+import { ensureSchema, rows, sql } from './db.js';
 
 /**
  * Autenticação própria em Postgres — sem serviço de terceiros.

@@ -1,4 +1,4 @@
-import { ensureSchema, isManagedKey, rows as queryRows, sql } from './db';
+import { ensureSchema, isManagedKey, rows as queryRows, sql } from './db.js';
 import {
   SESSION_COOKIE,
   createSession,
@@ -7,7 +7,7 @@ import {
   hashPassword,
   verifyPassword,
   type SessionUser,
-} from './auth';
+} from './auth.js';
 
 /* ─── contrato HTTP ──────────────────────────────────────────────────────── */
 

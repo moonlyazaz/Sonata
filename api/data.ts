@@ -1,4 +1,4 @@
-import { serveApi } from '../server/serve';
+import { serveApi } from '../server/serve.js';
 
 /**
  * Cada arquivo em `api/` é uma função serverless da Vercel apontando para o

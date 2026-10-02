@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { HttpError, match, type Ctx, type Result } from './routes';
+import { HttpError, match, type Ctx, type Result } from './routes.js';
 
 /**
  * Adaptador Node → rotas.
