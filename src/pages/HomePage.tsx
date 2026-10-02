@@ -91,7 +91,7 @@ export function HomePage() {
             Não foi possível falar com o SoundCloud: <strong className="text">{erro}</strong>
           </p>
           <p className="text-faint mt-2 text-xs">
-            Confira se o dev server está ativo — o proxy <code>/sc/api</code> resolve o CORS.
+            Confira sua conexão e recarregue a página — o SoundCloud pode estar instável.
           </p>
         </GlassPanel>
       )}

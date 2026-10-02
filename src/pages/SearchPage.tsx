@@ -166,7 +166,7 @@ export function SearchPage() {
             Falha na busca: <strong>{error}</strong>
           </p>
           <p className="text-faint mt-1 text-xs">
-            Verifique se o dev server está rodando (proxy <code>/sc/api</code>).
+            Confira sua conexão e tente de novo.
           </p>
         </GlassPanel>
       )}
