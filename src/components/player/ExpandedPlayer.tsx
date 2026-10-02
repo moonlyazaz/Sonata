@@ -14,6 +14,7 @@ import {
   SkipForward,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { AudioVisualizer } from './AudioVisualizer';
 import { SeekBar } from './SeekBar';
 import { VolumeControl } from './VolumeControl';
 import { bigArtwork } from '@/lib/soundcloud';
@@ -154,6 +155,12 @@ export function ExpandedPlayer() {
                     </div>
                   )}
                 </motion.div>
+
+                {/* visualizador — barras do espectro real, lidas do AnalyserNode.
+                    Fica entre a capa e o título: é a música "saindo" da capa. */}
+                <div className="w-full max-w-2xl">
+                  <AudioVisualizer className="h-14 w-full sm:h-20" />
+                </div>
 
                 {/* título + artista */}
                 <div className="w-full max-w-2xl text-center">

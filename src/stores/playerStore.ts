@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { audio, DEFAULT_VOLUME, initAudio } from '@/lib/audio';
+import { audio, DEFAULT_VOLUME, initAudio, setAudioMuted, setAudioVolume } from '@/lib/audio';
 import { invalidateStream, resolveStream, type ScTrack } from '@/lib/soundcloud';
 import { load, save, STORAGE_KEYS } from '@/lib/storage';
 
@@ -381,15 +381,16 @@ export const usePlayerStore = create<PlayerState>((set, get) => {
 
     setVolume(v) {
       const value = Math.min(1, Math.max(0, v));
-      audio.volume = value;
-      audio.muted = false;
+      // não escreva em `audio.volume` direto: depois que o visualizador abre o
+      // grafo Web Audio, o volume pertence ao GainNode (ver lib/audio.ts)
+      setAudioVolume(value);
       set({ volume: value, muted: false });
       save(STORAGE_KEYS.volume, value);
     },
 
     toggleMute() {
       const next = !get().muted;
-      audio.muted = next;
+      setAudioMuted(next);
       set({ muted: next });
     },
 
@@ -600,7 +601,7 @@ export function startPlayer(): void {
   started = true;
 
   const state = usePlayerStore.getState();
-  audio.volume = state.volume;
+  setAudioVolume(state.volume);
 
   initAudio({
     onTime: (current, duration) => usePlayerStore.getState()._onTime(current, duration),
